@@ -1,0 +1,127 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  1.4                                   |
+|   \\  /    A nd           | Web:      http://www.openfoam.org               |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+
+
+FoamFile
+{
+    version         2.0;
+    format          ascii;
+
+    root            "";
+    case            "";
+    instance        "";
+    local           "";
+
+    class           dictionary;
+    object          couplingProperties;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+//===========================================================================//
+
+
+parcelStressModellingProps
+{
+        DEMts 1.e-06;
+	rhoParticle 1500;
+	dp 75.e-06;
+        relativePath "../DEM/post";
+        couplingFilename "dump%d.part";
+        outputRelativePath "parcelStressModeling";
+        treeSearch true;
+	
+	fluidCoarsening
+	{
+    	    filterWidth ( 1 );
+	}	
+
+	/*
+        conditionalAve
+        {
+            outputRelativePath "./parcelStressModeling";
+            variableList ( Pp mup mupSqrtPp normPp normmup normmupoff );
+            averagingVariableList ( alpp );
+            alpp
+            {
+                    fieldName alpp;
+                    expression "1-voidfraction";
+                    autowrite true;
+                    nBin 60;
+                    min 0;
+                    max 0.6;
+            }
+        }
+	*/
+	
+        multiVarsConditionalAve
+        {
+            outputRelativePath "./parcelStressModeling";
+            variableList (divU pressureuslip sigmagradus uslipuslip Pp Ppxy Ppcontact Ppkinetic  mup mup5 mup6  mup2 mup3 mup4 shearstress shearstress2 shearstress2_kin shearstress_xy shearstress_xzyz    );
+            averagingVariableList ( newgammadot alpp );
+            alpp
+            {
+                    fieldName alpp;
+                    expression "1-mappedVoidfraction";
+                    autowrite true;
+                    nBin 20;
+                    min 0.0;
+                    max 0.6;
+            }
+
+            newgammadot
+            {
+                    fieldName newgammadot;
+		    expression "sqrt(2.*(0.5*grad(mappedUs) + 0.5*grad(mappedUs).T()-1.0/3.0*tr(grad(mappedUs))*tensor(1,0,0,0,1,0,0,0,1)) &&  (0.5*grad(mappedUs) +
+		    0.5*grad(mappedUs).T()-1.0/3.0*tr(grad(mappedUs))*tensor(1,0,0,0,1,0,0,0,1)))";
+                    autowrite true;
+                    nBin 25000;
+                    min 0;
+                    max 2500;
+            }
+
+    	}
+
+/*
+        threeVarsConditionalAve
+        {
+            outputRelativePath "./parcelStressModeling";
+            variableList (Pp     );
+            averagingVariableList ( gammadot alpp uslip );
+            alpp
+            {
+                    fieldName alpp;
+                    expression "1-mappedVoidfraction";
+                    autowrite true;
+                    nBin 20;
+                    min 0.0;
+                    max 0.6;
+            }
+            gammadot
+            {
+                    fieldName gammadot;
+                    expression "sqrt( 0.5 * ( grad(mappedUs) + grad(mappedUs).T() )&&( grad(mappedUs) + grad(mappedUs).T() ) )";
+                    autowrite true;
+                    nBin 25000;
+                    min 0;
+                    max 2500;
+            }
+            uslip
+            {
+                    fieldName uslip;
+                    expression "U.z-mappedUs.z";
+                    autowrite true;
+                    nBin 10;
+                    min -0.6;
+                    max 1.4;
+            }
+    	}
+	
+}
+*/
+// ************************************************************************* //

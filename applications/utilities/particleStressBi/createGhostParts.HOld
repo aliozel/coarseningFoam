@@ -1,0 +1,76 @@
+// Search for particles touching boundaries
+for(int index = 0; index < particleCloud.numberOfParticles(); index++)
+{
+	//label cellI = particleCloud.cellIDs()[index][0];				
+	//if(cellI > -1)
+	{
+		nPartInSubVolume++;
+		totalPartVol += 4./3. * constant::mathematical::pi 
+				      * particleCloud.radius(index) 
+				      * particleCloud.radius(index)
+				      * particleCloud.radius(index); 
+
+		//Info << " index test = " << index << endl;
+		partIDInSubVolume[ii] = index; 
+		ii++;
+
+		// Find particle on boundaries
+		if(       ( - minX + particleCloud.position(index).x() ) <= particleCloud.radius(index) )
+		{
+			ghostPartID[Pstream::myProcNo()][nGhostPart] = index;
+			ghostPartPositions[nGhostPart][0] = particleCloud.position(index).x() + ( maxX - minX );
+			ghostPartPositions[nGhostPart][1] = particleCloud.position(index).y() ;
+			ghostPartPositions[nGhostPart][2] = particleCloud.position(index).z() ;
+
+			if (verbose) Pout << " Particle " << index << " on boundary xmin " 
+					  << ghostPartPositions[nGhostPart][0] << " " << particleCloud.position(index).x() << endl; 
+			nGhostPart++;		  
+		}
+		else  if( (   maxX - particleCloud.position(index).x() ) <= particleCloud.radius(index) )
+		{
+			ghostPartID[Pstream::myProcNo()][nGhostPart] = index;
+			ghostPartPositions[nGhostPart][0] = particleCloud.position(index).x() - ( maxX - minX );
+			ghostPartPositions[nGhostPart][1] = particleCloud.position(index).y() ;
+			ghostPartPositions[nGhostPart][2] = particleCloud.position(index).z() ;
+			nGhostPart++;
+			if (verbose) Pout << " Particle " << index << " on boundary xmax " << endl; 
+		}
+		else  if( ( - minY + particleCloud.position(index).y() ) <= particleCloud.radius(index) )
+		{
+			ghostPartID[Pstream::myProcNo()][nGhostPart] = index;
+			ghostPartPositions[nGhostPart][0] = particleCloud.position(index).x() ;
+			ghostPartPositions[nGhostPart][1] = particleCloud.position(index).y() + ( maxY - minY );
+			ghostPartPositions[nGhostPart][2] = particleCloud.position(index).z() ;						
+			nGhostPart++;
+			if (verbose) Pout << " Particle " << index << " on boundary ymin " << endl; 
+		}	
+		else if( (   maxY - particleCloud.position(index).y() ) <= particleCloud.radius(index) )
+		{
+			ghostPartID[Pstream::myProcNo()][nGhostPart] = index;
+			ghostPartID[Pstream::myProcNo()][nGhostPart] = index;
+			ghostPartPositions[nGhostPart][0] = particleCloud.position(index).x() ;
+			ghostPartPositions[nGhostPart][1] = particleCloud.position(index).y() - ( maxY - minY );
+			ghostPartPositions[nGhostPart][2] = particleCloud.position(index).z() ;
+			nGhostPart++;
+			if (verbose) Pout << " Particle " << index << " on boundary ymax " << endl;
+		}	 
+		else if( ( - minZ + particleCloud.position(index).z() ) < particleCloud.radius(index) )
+		{
+			ghostPartID[Pstream::myProcNo()][nGhostPart] = index;
+			ghostPartPositions[nGhostPart][0] = particleCloud.position(index).x() ;
+			ghostPartPositions[nGhostPart][1] = particleCloud.position(index).y() ;
+			ghostPartPositions[nGhostPart][2] = particleCloud.position(index).z() + ( maxZ - minZ );					
+			nGhostPart++;
+			if (verbose) Pout << " Particle " << index << " on boundary zmin " << endl;
+		}	 
+		else if( (   maxZ - particleCloud.position(index).z() ) <= particleCloud.radius(index) )
+		{
+			ghostPartID[Pstream::myProcNo()][nGhostPart] = index;
+			ghostPartPositions[nGhostPart][0] = particleCloud.position(index).x() ;
+			ghostPartPositions[nGhostPart][1] = particleCloud.position(index).y() ;
+			ghostPartPositions[nGhostPart][2] = particleCloud.position(index).z() - ( maxZ - minZ );
+			nGhostPart++;
+			if (verbose) Pout << " Particle " << index << " on boundary zmax " << endl; 						
+		}		            							      
+	}
+}

@@ -1,0 +1,209 @@
+// Test
+
+volScalarField barAlpf=convKernel.coarseningSca("barAlpf",filterWidth[fWidth],mappedVoidfraction);
+volVectorField barGradSigma=convKernel.coarseningVec("barGradSigma",filterWidth[fWidth],gradPg);
+volVectorField barAlpfGradSigma=convKernel.coarseningVec("barAlpfGradSigma",filterWidth[fWidth],mappedVoidfraction*gradPg);
+
+volVectorField I
+(
+    IOobject
+    (
+        "I"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    barAlpfGradSigma
+);
+I.write();
+//- SGS term
+volVectorField barAlpfGradSigmaSGS
+(
+    IOobject
+    (
+        "barAlpfGradSigmaSGS"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    barAlpfGradSigma-barAlpf*barGradSigma
+);
+barAlpfGradSigmaSGS.write();
+
+//- Reynolds-tyep term
+volVectorField barAlpfPrimeGradSigmaPrime=convKernel.coarseningVec("barAlpfPrimeGradSigmaPrime",filterWidth[fWidth],(mappedVoidfraction-barAlpf)*(gradPg-barGradSigma));
+volVectorField J
+(
+    IOobject
+    (
+        "J"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    barAlpfPrimeGradSigmaPrime
+);
+J.write();
+
+
+//extra laplacian term
+volVectorField barAlpfBarGradSigma 
+(
+    IOobject
+    (
+        "barAlpfBarGradSigma"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    barAlpf*barGradSigma
+);
+barAlpfBarGradSigma.write();
+
+
+volVectorField barBarAlpfBarGradSigma = convKernel.coarseningVec("barBarAlpfBarGradSigma",filterWidth[fWidth],barAlpfBarGradSigma);
+
+volVectorField G
+(
+    IOobject
+    (
+        "G"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    barAlpf*barGradSigma
+);
+G.write();
+
+volVectorField H
+(
+    IOobject
+    (
+        "H"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    barBarAlpfBarGradSigma
+);
+H.write();
+
+
+volVectorField gradBarAlpf = fvc::grad(barAlpf);
+
+
+volTensorField gradBarGradSigma = fvc::grad(barGradSigma);
+
+volVectorField Res = convKernel.coarseningVec("Res",1,gradBarGradSigma&gradBarAlpf);
+
+
+volVectorField laplacianTerm
+(
+    IOobject
+    (
+        "laplacianTerm"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    fvc::laplacian(barAlpfBarGradSigma)
+);
+laplacianTerm.write();
+
+
+volVectorField GradSigmaPrime = gradPg-barGradSigma;
+volScalarField alpfPrime = mappedVoidfraction-barAlpf;
+volVectorField barGradSigmaPrime = convKernel.coarseningVec("barGradSigmaPrime",filterWidth[fWidth],GradSigmaPrime);
+volScalarField barAlpfPrime = convKernel.coarseningSca("barAlpfPrime",filterWidth[fWidth],alpfPrime);
+volScalarField laplacianBarAlpf = fvc::laplacian(barAlpf);
+volVectorField laplacianBarGradSigma = fvc::laplacian(barGradSigma);
+
+//A - barBarAlpfGradSigmaPrime
+volVectorField A = convKernel.coarseningVec("A",filterWidth[fWidth],barAlpf*GradSigmaPrime);
+
+//B - barAlpfBarGradSigmaPrime
+volVectorField B
+(
+    IOobject
+    (
+        "B"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    barAlpf*barGradSigmaPrime
+);
+B.write();
+
+//C - barAlpfLaplacianBarGradSigma
+volVectorField C
+(
+    IOobject
+    (
+        "C"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    barAlpf*laplacianBarGradSigma
+);
+C.write();
+
+//D - barBarAlpfPrimeBarGradSigma
+
+volVectorField D = convKernel.coarseningVec("D",filterWidth[fWidth],alpfPrime*barGradSigma);
+
+//E - barAlpfPrimeBarGradSigma
+volVectorField E
+(
+    IOobject
+    (
+        "E"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    barAlpfPrime*barGradSigma
+);
+E.write();
+
+//F - laplacianBarAlpfGradSigma
+volVectorField F
+(
+    IOobject
+    (
+        "F"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    laplacianBarAlpf*barGradSigma
+);
+F.write();
+
+
+Info << "\nFiltered term = " << fvc::domainIntegrate(barAlpfGradSigma).value() << endl;
+Info << "Resolved term = " << fvc::domainIntegrate(barAlpf*barGradSigma).value() << endl;
+
+Info << "\nSGS term = " << fvc::domainIntegrate(barAlpfGradSigmaSGS).value() << endl;
+Info << "Reynolds-type term = " << fvc::domainIntegrate(barAlpfPrimeGradSigmaPrime).value() << endl;
+
+Info << "\nErr. (SGS) = " <<   fvc::domainIntegrate(barAlpfGradSigma).value()
+		             - fvc::domainIntegrate(barAlpf*barGradSigma).value() 
+		             - fvc::domainIntegrate(barAlpfGradSigmaSGS).value() << endl;
+
+Info << "Err. (Reynolds-type) = " <<   fvc::domainIntegrate(barAlpfGradSigma).value()
+                                      - fvc::domainIntegrate(barAlpf*barGradSigma).value()
+                        	      - fvc::domainIntegrate(barAlpfPrimeGradSigmaPrime).value() << endl;

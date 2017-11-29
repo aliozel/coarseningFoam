@@ -1,0 +1,19 @@
+dragModels = dragForcePost
+locateModels = locateModelPost
+
+$(dragModels)/dragModelPost/newDragModelPost.C
+$(dragModels)/dragModelPost/dragModelPost.C
+$(dragModels)/WenYuDragPost/WenYuDragPost.C
+$(dragModels)/BeetstraDragPost/BeetstraDragPost.C
+/*
+$(dragModels)/BeetstraDragPost/multiphaseFlowBasic/multiphaseFlowBasic.C
+*/
+/*
+$(dragModels)/gradPgPost/gradPgPost.C
+*/
+$(locateModels)/locateModelPost/locateModelPost.C
+$(locateModels)/locateModelPost/newLocateModelPost.C
+$(locateModels)/standardSearchPost/standardSearchPost.C
+$(locateModels)/engineSearchPost/engineSearchPost.C
+
+LIB = $(FOAM_USER_LIBBIN)/libsubModelsPost

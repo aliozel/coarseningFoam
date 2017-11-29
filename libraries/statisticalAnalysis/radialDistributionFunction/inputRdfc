@@ -1,0 +1,7 @@
+datFile	partAllc.dat
+dp	250e-06
+nBin	100
+rMax	2.5
+Lx	0.003
+Ly 	0.003
+Lz	0.096

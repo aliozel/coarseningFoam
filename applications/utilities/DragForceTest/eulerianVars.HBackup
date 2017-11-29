@@ -1,0 +1,524 @@
+ // Calculate Eulerian resolved drag force
+Info << "\n" << endl;
+Info << tab << "Calculating Eulerian resolved drag force..." << endl;
+resolvedDragFEulerian().setForceEulerian(barAlpf,tildeUf,radii[me],tildeUs);
+
+// Particle density
+scalar rhoParticle = resolvedDragFEulerian().rhoParticle(); 
+dimensionedScalar rhoParticleDim("0",dimensionSet(1,-3,0,0,0),rhoParticle); 
+Info << tab << "rhoParticle = " << resolvedDragFEulerian().rhoParticle() << endl; 
+//Info << tab << "rho = " << rho << endl;
+// Gas kinematic viscosity
+const volScalarField nuf = resolvedDragFEulerian().nuf(); 
+//Info << tab << "nuf = [" << min(nuf).value() <<":"<<max(nuf).value()<<"]" <<endl;
+
+rhoMix = mappedVoidfraction*rho+(1-mappedVoidfraction)*rhoParticleDim;
+UwithRhoMix = (rho*mappedVoidfraction*U + rhoParticleDim*(1-mappedVoidfraction)*mappedUs)/rhoMix;
+volVectorField rhoMixU = rho*mappedVoidfraction*U + rhoParticleDim*(1-mappedVoidfraction)*mappedUs;
+
+volVectorField barRhoMixU = convKernel.coarseningVec("barRhoMixU",filterWidth[fWidth],rhoMixU);
+volScalarField barRhoMix = convKernel.coarseningSca("barRhoMix",filterWidth[fWidth],rhoMix);
+volVectorField tildeUwithRhoMix = barRhoMixU/barRhoMix;
+volVectorField barDRhoMixUDt = convKernel.coarseningVec("barDRhoMixUDt",filterWidth[fWidth],dRhoMixUDt);
+volScalarField barDRhoMixDt = convKernel.coarseningSca("barDRhoMixDt",filterWidth[fWidth],dRhoMixDt);
+volVectorField dtildeUwithRhoMixDt = (barDRhoMixUDt - tildeUwithRhoMix*barDRhoMixDt)/barRhoMix;
+volVectorField MatDtildeUwithRhoMixDt = dtildeUwithRhoMixDt + ( tildeUwithRhoMix & fvc::grad(tildeUwithRhoMix) );
+//volVectorField NFirstTerm = (rhoParticleDim - rho)*approxPDFScalarVar*(g-MatDtildeUwithRhoMixDt);
+volVectorField NFirstTerm
+(
+    IOobject
+    (
+        "NFirstTerm"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    (rhoParticleDim - rho)*approxPDFScalarVar*(g-MatDtildeUwithRhoMixDt)
+); 
+NFirstTerm.write();
+
+
+volScalarField alppPrime = (1-mappedVoidfraction) - barAlpp;
+volScalarField alpfPrime = mappedVoidfraction - barAlpf;
+volVectorField UwithRhoMixPrime = UwithRhoMix - tildeUwithRhoMix;
+volVectorField dRhoMixUwithRhoMixPrimeDt = dRhoMixUDt - rhoMix*dtildeUwithRhoMixDt - tildeUwithRhoMix*dRhoMixDt;
+volTensorField Pi = rho*mappedVoidfraction*rhoParticleDim*(1-mappedVoidfraction)/rhoMix*(U-mappedUs)*(U-mappedUs);
+
+//barPi
+volScalarField barPixx = convKernel.coarseningSca("barPixx",filterWidth[fWidth],Pi.component(tensor::XX));
+volScalarField barPiyy = convKernel.coarseningSca("barPiyy",filterWidth[fWidth],Pi.component(tensor::YY));
+volScalarField barPizz = convKernel.coarseningSca("barPizz",filterWidth[fWidth],Pi.component(tensor::ZZ));
+volScalarField barPixy = convKernel.coarseningSca("barPixy",filterWidth[fWidth],Pi.component(tensor::XY));
+volScalarField barPixz = convKernel.coarseningSca("barPixz",filterWidth[fWidth],Pi.component(tensor::XZ));
+volScalarField barPiyz = convKernel.coarseningSca("barPiyz",filterWidth[fWidth],Pi.component(tensor::YZ));
+volScalarField barPiyx = convKernel.coarseningSca("barPiyx",filterWidth[fWidth],Pi.component(tensor::YX));
+volScalarField barPizx = convKernel.coarseningSca("barPizx",filterWidth[fWidth],Pi.component(tensor::ZX));
+volScalarField barPizy = convKernel.coarseningSca("barPizy",filterWidth[fWidth],Pi.component(tensor::ZY));
+
+volTensorField barPi
+(
+    IOobject
+    (
+     "barPi",
+     runTime.timeName(),
+     mesh,
+     IOobject::NO_READ,
+     IOobject::AUTO_WRITE
+     ),
+    mesh,
+    dimensionedTensor("zero",dimensionSet(1,-1,-2,0,0),tensor(0,0,0,0,0,0,0,0,0))
+ );
+
+forAll(mesh.cells(),cellI)
+{
+        barPi[cellI] = tensor
+	  (
+	   barPixx[cellI],
+	   barPixy[cellI],
+	   barPixz[cellI],
+	   barPiyx[cellI],
+	   barPiyy[cellI],
+	   barPiyz[cellI],
+	   barPizx[cellI],
+	   barPizy[cellI],
+	   barPizz[cellI]
+	  );
+}
+
+volTensorField PiPrime = Pi - barPi;
+
+//solid phase stress tensor
+volTensorField gradUs = fvc::grad(mappedUs);
+volSymmTensorField ParticleStress = totalParticleStress;
+
+volScalarField barParticleStressxx = convKernel.coarseningSca("barParticleStressxx",filterWidth[fWidth],ParticleStress.component(symmTensor::XX));
+volScalarField barParticleStressyy = convKernel.coarseningSca("barParticleStressyy",filterWidth[fWidth],ParticleStress.component(symmTensor::YY));
+volScalarField barParticleStresszz = convKernel.coarseningSca("barParticleStresszz",filterWidth[fWidth],ParticleStress.component(symmTensor::ZZ));
+volScalarField barParticleStressxy = convKernel.coarseningSca("barParticleStressxy",filterWidth[fWidth],ParticleStress.component(symmTensor::XY));
+volScalarField barParticleStressxz = convKernel.coarseningSca("barParticleStressxz",filterWidth[fWidth],ParticleStress.component(symmTensor::XZ));
+volScalarField barParticleStressyz = convKernel.coarseningSca("barParticleStressyz",filterWidth[fWidth],ParticleStress.component(symmTensor::YZ));
+
+
+
+volSymmTensorField barParticleStress
+(
+    IOobject
+    (
+     "barParticleStress",
+     runTime.timeName(),
+     mesh,
+     IOobject::NO_READ,
+     IOobject::AUTO_WRITE
+     ),
+    mesh,
+    dimensionedSymmTensor("zero",dimensionSet(1,-1,-2,0,0),symmTensor(0,0,0,0,0,0))
+ );
+
+forAll(mesh.cells(),cellI)
+{
+        barParticleStress[cellI] = symmTensor
+	  (
+	   barParticleStressxx[cellI],
+	   barParticleStressxy[cellI],
+	   barParticleStressxz[cellI],
+	   barParticleStressyy[cellI],
+	   barParticleStressyz[cellI],
+	   barParticleStresszz[cellI]
+	  );
+}
+
+volSymmTensorField ParticleStressPrime = ParticleStress - barParticleStress;
+
+//barRhoMixUU
+volTensorField rhoMixUU = rhoMix*UwithRhoMix*UwithRhoMix;
+
+volScalarField rhoMixUUxx = convKernel.coarseningSca("rhoMixUUxx",filterWidth[fWidth],rhoMixUU.component(tensor::XX));
+volScalarField rhoMixUUyy = convKernel.coarseningSca("rhoMixUUyy",filterWidth[fWidth],rhoMixUU.component(tensor::YY));
+volScalarField rhoMixUUzz = convKernel.coarseningSca("rhoMixUUzz",filterWidth[fWidth],rhoMixUU.component(tensor::ZZ));
+volScalarField rhoMixUUxy = convKernel.coarseningSca("rhoMixUUxy",filterWidth[fWidth],rhoMixUU.component(tensor::XY));
+volScalarField rhoMixUUxz = convKernel.coarseningSca("rhoMixUUxz",filterWidth[fWidth],rhoMixUU.component(tensor::XZ));
+volScalarField rhoMixUUyz = convKernel.coarseningSca("rhoMixUUyz",filterWidth[fWidth],rhoMixUU.component(tensor::YZ));
+volScalarField rhoMixUUyx = convKernel.coarseningSca("rhoMixUUyx",filterWidth[fWidth],rhoMixUU.component(tensor::YX));
+volScalarField rhoMixUUzx = convKernel.coarseningSca("rhoMixUUzx",filterWidth[fWidth],rhoMixUU.component(tensor::ZX));
+volScalarField rhoMixUUzy = convKernel.coarseningSca("rhoMixUUzy",filterWidth[fWidth],rhoMixUU.component(tensor::ZY));
+
+
+volTensorField barRhoMixUU
+(
+    IOobject
+    (
+     "barRhoMixUU",
+     runTime.timeName(),
+     mesh,
+     IOobject::NO_READ,
+     IOobject::AUTO_WRITE
+     ),
+    mesh,
+    dimensionedTensor("zero",dimensionSet(1,-1,-2,0,0),tensor(0,0,0,0,0,0,0,0,0))
+ );
+
+forAll(mesh.cells(),cellI)
+{
+        barRhoMixUU[cellI] = tensor
+	  (
+	   rhoMixUUxx[cellI],
+	   rhoMixUUxy[cellI],
+	   rhoMixUUxz[cellI],
+	   rhoMixUUyx[cellI],
+	   rhoMixUUyy[cellI],
+	   rhoMixUUyz[cellI],
+	   rhoMixUUzx[cellI],
+	   rhoMixUUzy[cellI],
+	   rhoMixUUzz[cellI]
+
+	  );
+}
+
+volTensorField barRhoMixtildeUtildeU = barRhoMix*tildeUwithRhoMix*tildeUwithRhoMix;
+volTensorField Mmix = barRhoMixUU - barRhoMixtildeUtildeU;
+
+volTensorField rhoMixUPrimeUPrime = rhoMix*UwithRhoMixPrime*UwithRhoMixPrime;
+volTensorField Xi = rhoMixUPrimeUPrime - Mmix;
+
+//R1
+volVectorField R1 = alppPrime*dRhoMixUwithRhoMixPrimeDt;
+volVectorField barR1 = convKernel.coarseningVec("barR1",filterWidth[fWidth],R1);
+
+//R2
+volVectorField R2 = alppPrime*fvc::div(PiPrime);
+volVectorField barR2 = convKernel.coarseningVec("barR2",filterWidth[fWidth],R2);
+
+//R3
+volVectorField R3 = alppPrime*fvc::div(ParticleStressPrime);
+volVectorField barR3 = convKernel.coarseningVec("barR3",filterWidth[fWidth],R3);
+
+//R4
+volVectorField R4 = alppPrime*fvc::div(Xi);
+volVectorField barR4 = convKernel.coarseningVec("barR4",filterWidth[fWidth],R4);
+
+//R5
+volTensorField rhoMixtildeUUPrimeUprimetildeU = rhoMix*(tildeUwithRhoMix*UwithRhoMixPrime + UwithRhoMixPrime*tildeUwithRhoMix);
+volVectorField R5 = alppPrime*fvc::div(rhoMixtildeUUPrimeUprimetildeU);
+volVectorField barR5 = convKernel.coarseningVec("barR5",filterWidth[fWidth],R5);
+
+//R
+//volVectorField R = -barR1-barR2+barR3-barR4-barR5;
+volVectorField R
+(
+    IOobject
+    (
+        "R"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    -barR1-barR2+barR3-barR4-barR5
+); 
+R.write();
+
+
+//R*
+
+volVectorField RhoMixUPrime = rhoMix*UwithRhoMixPrime;
+volScalarField alppPrimedivRhoMixUPrime = alppPrime*fvc::div(RhoMixUPrime);
+volScalarField baralppPrimedivRhoMixUPrime = convKernel.coarseningSca("baralppPrimedivRhoMixUPrime", filterWidth[fWidth],alppPrimedivRhoMixUPrime);
+volVectorField RStarres = tildeUwithRhoMix*baralppPrimedivRhoMixUPrime;
+//volVectorField RStar = R+RStarres;
+volVectorField RStar
+(
+    IOobject
+    (
+        "RStar"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    R+RStarres
+); 
+RStar.write();
+
+
+//N from gas phase stress
+volTensorField gradU = fvc::grad(U);
+volTensorField Tau = nuf*rho*(gradU+gradU.T()-2.0/3.0*fvc::div(U)*tensor(I));
+volTensorField FluidStress = -p*tensor(I)*rho;//+Tau;
+//barFluidStress
+volScalarField barFluidStressxx = convKernel.coarseningSca("barFluidStressxx",filterWidth[fWidth],FluidStress.component(tensor::XX));
+volScalarField barFluidStressyy = convKernel.coarseningSca("barFluidStressyy",filterWidth[fWidth],FluidStress.component(tensor::YY));
+volScalarField barFluidStresszz = convKernel.coarseningSca("barFluidStresszz",filterWidth[fWidth],FluidStress.component(tensor::ZZ));
+volScalarField barFluidStressxy = convKernel.coarseningSca("barFluidStressxy",filterWidth[fWidth],FluidStress.component(tensor::XY));
+volScalarField barFluidStressxz = convKernel.coarseningSca("barFluidStressxz",filterWidth[fWidth],FluidStress.component(tensor::XZ));
+volScalarField barFluidStressyz = convKernel.coarseningSca("barFluidStressyz",filterWidth[fWidth],FluidStress.component(tensor::YZ));
+volScalarField barFluidStressyx = convKernel.coarseningSca("barFluidStressyx",filterWidth[fWidth],FluidStress.component(tensor::YX));
+volScalarField barFluidStresszx = convKernel.coarseningSca("barFluidStresszx",filterWidth[fWidth],FluidStress.component(tensor::ZX));
+volScalarField barFluidStresszy = convKernel.coarseningSca("barFluidStresszy",filterWidth[fWidth],FluidStress.component(tensor::ZY));
+
+
+volTensorField barFluidStress
+(
+    IOobject
+    (
+     "barFluidStress",
+     runTime.timeName(),
+     mesh,
+     IOobject::NO_READ,
+     IOobject::AUTO_WRITE
+     ),
+    mesh,
+    dimensionedTensor("zero",dimensionSet(1,-1,-2,0,0),tensor(0,0,0,0,0,0,0,0,0))
+ );
+
+forAll(mesh.cells(),cellI)
+{
+        barFluidStress[cellI] = tensor
+	  (
+	   barFluidStressxx[cellI],
+	   barFluidStressxy[cellI],
+	   barFluidStressxz[cellI],
+	   barFluidStressyx[cellI],
+	   barFluidStressyy[cellI],
+	   barFluidStressyz[cellI],
+	   barFluidStresszx[cellI],
+	   barFluidStresszy[cellI],
+	   barFluidStresszz[cellI]
+	  );
+}
+
+
+volVectorField DivFluidStress = fvc::div(FluidStress);
+volVectorField AlpfDivFluidStress = mappedVoidfraction*DivFluidStress;
+volVectorField barAlpfDivFluidStress = convKernel.coarseningVec("barAlpfDivFluidStress",filterWidth[fWidth],AlpfDivFluidStress);
+volVectorField n1
+(
+    IOobject
+    (
+        "n1"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    barAlpfDivFluidStress
+); 
+n1.write();
+
+volVectorField barAlpfDivbarFluidStress = barAlpf*fvc::div(barFluidStress);
+volVectorField n2
+(
+    IOobject
+    (
+        "n2"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    barAlpfDivbarFluidStress
+); 
+n2.write();
+
+//volVectorField N = barAlpfDivFluidStress - barAlpfDivbarFluidStress;
+volVectorField N
+(
+    IOobject
+    (
+        "N"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    barAlpfDivFluidStress - barAlpfDivbarFluidStress
+); 
+N.write();
+
+volTensorField FluidStressPrime = FluidStress - barFluidStress;
+volVectorField DivFluidStressPrime = fvc::div(FluidStressPrime);
+volVectorField Nmicro = alpfPrime*DivFluidStressPrime;
+volVectorField N3 =  convKernel.coarseningVec("N3",filterWidth[fWidth],Nmicro);
+
+
+
+volVectorField BarbarAlpfDivbarFluidStress = convKernel.coarseningVec("BarbarAlpfDivbarFluidStress",filterWidth[fWidth],barAlpfDivbarFluidStress);
+volVectorField n3
+(
+    IOobject
+    (
+        "n3"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    BarbarAlpfDivbarFluidStress
+); 
+n3.write();
+
+//volVectorField N1 = BarbarAlpfDivbarFluidStress - barAlpfDivbarFluidStress;
+volVectorField N1
+(
+    IOobject
+    (
+        "N1"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    BarbarAlpfDivbarFluidStress - barAlpfDivbarFluidStress
+); 
+N1.write();
+
+volVectorField AlpfPrimeDivbarFluidStress = alpfPrime*fvc::div(barFluidStress);
+volVectorField barAlpfPrimeDivbarFluidStress = convKernel.coarseningVec("n4",filterWidth[fWidth],AlpfPrimeDivbarFluidStress);
+volVectorField barAlpfDivFluidStressPrime = barAlpf*fvc::div(FluidStressPrime);
+volVectorField barBarAlpfDivFluidStressPrime = convKernel.coarseningVec("n5",filterWidth[fWidth],barAlpfDivFluidStressPrime);
+
+volVectorField N2
+(
+    IOobject
+    (
+        "N2"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    barAlpfPrimeDivbarFluidStress + barBarAlpfDivFluidStressPrime
+); 
+N2.write();
+
+volVectorField N1N2N3
+(
+    IOobject
+    (
+        "N1N2N3"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    N1+N2+N3
+); 
+N1N2N3.write();
+
+
+//volVectorField N2 =  barAlpfPrimeDivbarFluidStress - barBarAlpfDivFluidStressPrime;
+
+
+
+volVectorField RhoMixVPrime = rhoMix*UwithRhoMixPrime;
+/*
+volTensorField barRhoMixVPrime
+(
+    IOobject
+    (
+     "barRhoMixVPrime",
+     runTime.timeName(),
+     mesh,
+     IOobject::NO_READ,
+     IOobject::AUTO_WRITE
+     ),
+    mesh
+ );
+*/
+volVectorField barRhoMixVPrime = convKernel.coarseningVec("barRhoMixVPrime",filterWidth[fWidth],RhoMixVPrime);
+
+volTensorField tildeVtildeV
+(
+    IOobject
+    (
+        "tildeVtildeV"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    tildeUwithRhoMix*tildeUwithRhoMix
+); 
+tildeVtildeV.write();
+
+volTensorField VPrimeVPrime
+(
+    IOobject
+    (
+        "VPrimeVPrime"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    UwithRhoMixPrime*UwithRhoMixPrime
+); 
+VPrimeVPrime.write();
+
+volTensorField tildeVVPrime
+(
+    IOobject
+    (
+        "tildeVVPrime"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    tildeUwithRhoMix*UwithRhoMixPrime
+); 
+tildeVVPrime.write();
+
+volTensorField VPrimeTildeV
+(
+    IOobject
+    (
+        "VPrimeTildeV"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    UwithRhoMixPrime*tildeUwithRhoMix
+); 
+VPrimeTildeV.write();
+
+
+//**************************************************************//
+
+/* - AO
+// Write results into a file
+*outputFile	<< runTime.timeName() << tab 
+		<< fvc::domainIntegrate(divAsgs).value()[2]  					<< tab  
+                << fvc::domainIntegrate(Bsgs).value()[2]                 			<< tab
+                << fvc::domainIntegrate(Csgs).value()[2]                 			<< tab
+                << fvc::domainIntegrate(Dsgs).value()[2]                		 	<< tab                
+		<< fvc::domainIntegrate(Esgs).value()[2]                 			<< tab
+                << fvc::domainIntegrate(Fsgs).value()[2]                 			<< tab
+                << fvc::domainIntegrate(Gsgs).value()[2]                 			<< tab
+                << fvc::domainIntegrate(AlppJsgs).value()[2]                 			<< tab
+                << fvc::domainIntegrate(AlppKsgs).value()[2]                 			<< tab
+		<< fvc::domainIntegrate(AlppMsgs).value()[2]					<< tab
+                << fvc::domainIntegrate(divLsgs).value()[2]					<< tab
+                << fvc::domainIntegrate(divIsgs).value()[2]					<< tab
+                << fvc::domainIntegrate(divHsgs).value()[2]					<< tab
+                << fvc::domainIntegrate(divLHS).value()[2]					<< tab
+                << fvc::domainIntegrate(AlpfXsgs).value()[2]					<< tab
+                << fvc::domainIntegrate(Ysgs).value()[2]					<< tab
+<< endl;
+AO - */ 
+
+domainAveVars[timeI][fWidth][0] = fvc::domainIntegrate(NFirstTerm).value()[2];
+domainAveVars[timeI][fWidth][1] = fvc::domainIntegrate(RStar).value()[2];
+domainAveVars[timeI][fWidth][2] = fvc::domainIntegrate(N).value()[2]; 
+domainAveVars[timeI][fWidth][3] = fvc::domainIntegrate(N1).value()[2];        
+domainAveVars[timeI][fWidth][4] = fvc::domainIntegrate(N2).value()[2];        
+domainAveVars[timeI][fWidth][5] = fvc::domainIntegrate(N3).value()[2];        
+domainAveVars[timeI][fWidth][6] = fvc::domainIntegrate(barR1).value()[2];         
+domainAveVars[timeI][fWidth][7] = fvc::domainIntegrate(barR2).value()[2];         
+domainAveVars[timeI][fWidth][8] = fvc::domainIntegrate(barR3).value()[2];         
+domainAveVars[timeI][fWidth][9] = fvc::domainIntegrate(barR4).value()[2];         
+domainAveVars[timeI][fWidth][10] = fvc::domainIntegrate(barR5).value()[2];         
+domainAveVars[timeI][fWidth][11] = fvc::domainIntegrate(RStarres).value()[2];         
+domainAveVars[timeI][fWidth][12] = fvc::domainIntegrate(barRhoMixVPrime).value()[2];    
+

@@ -1,0 +1,137 @@
+echo both
+variable 			dPrim equal 75e-6
+variable 			rhoParticle equal 1500
+variable 			volfrac equal 0.3 
+variable 			rPrim equal ${dPrim}/2.0
+
+atom_style	        	granular
+atom_modify	        	map array
+communicate	        	single vel yes
+
+boundary			p p p
+newton				off
+
+units				si
+processors			* * *
+
+region          		reg block 0 0.00072 0 0.00072 0 0.00288 units box
+create_box	    		1 reg
+neighbor	    		${rPrim} bin
+neigh_modify			delay 0 
+
+
+#Material properties required for new pair styles
+fix 				m1 all property/global youngsModulus peratomtype 1.e6 
+fix 				m2 all property/global poissonsRatio peratomtype 0.42
+fix 				m3 all property/global coefficientRestitution peratomtypepair 1 0.9
+fix 				m4 all property/global coefficientFriction peratomtypepair 1 0.5
+
+#pair style
+pair_style 			gran model hertz 
+pair_coeff			* *
+
+#timestep, gravity
+timestep			1e-6
+fix				gravi all gravity 9.81 vector 0.0 0.0 -1.0
+
+#walls
+
+# Compute stresses
+compute         		stress all stress/atom pair 
+
+#cfd coupling
+fix                             fcpus all cpus debug no polyhedron no
+fix                             cfd all     couple/cfd couple_every 10 mpipu
+fix                             cfd2 all    couple/cfd/force
+fix                             cfd3 all    couple/cfd/velocityCorrection
+fix                             cfd4 all    couple/cfd/collStress
+
+#particle insertion
+group				nve_group region reg
+fix	 			pts1 all particletemplate/sphere 1 atom_type 1 density constant ${rhoParticle} radius constant ${rPrim} volume_limit 1.e-14
+fix	 			pdd1 all particledistribution/discrete 1 1 pts1 1.0
+fix 				ins all insert/pack seed 101 distributiontemplate pdd1 vel constant 0. 0. 0. insert_every once overlapcheck yes all_in yes volumefraction_region ${volfrac} region reg
+
+#apply nve integration to all particles 
+fix				integr all nve/sphere
+
+#screen output
+compute				1 all erotate/sphere
+thermo_style			custom step atoms ke 
+thermo				50
+thermo_modify			lost ignore norm no
+compute_modify			thermo_temp dynamic yes
+
+# Total contact number
+compute         		contact all contact/atom 
+compute         		totalcontact all reduce sum c_contact
+variable 			stotalcontact equal c_totalcontact
+
+# Stress Calculation
+
+# Calculate mean velocity
+compute				meanVx all reduce ave vx
+compute				meanVy all reduce ave vy
+compute				meanVz all reduce ave vz
+
+# Kinetic stresses
+variable  			kinSxx atom mass*(vx-c_meanVx)^2.0
+variable  			kinSyy atom mass*(vy-c_meanVy)^2.0
+variable  			kinSzz atom mass*(vz-c_meanVz)^2.0
+variable  			kinSxy atom mass*(vx-c_meanVx)*(vy-c_meanVy)
+variable  			kinSxz atom mass*(vx-c_meanVx)*(vz-c_meanVz)
+variable  			kinSyz atom mass*(vy-c_meanVy)*(vz-c_meanVz)
+
+# Mean kinetic stresses
+compute				totalkinSxx all reduce sum v_kinSxx
+compute				totalkinSyy all reduce sum v_kinSyy
+compute				totalkinSzz all reduce sum v_kinSzz
+compute				totalkinSxy all reduce sum v_kinSxy
+compute				totalkinSxz all reduce sum v_kinSxz
+compute				totalkinSyz all reduce sum v_kinSyz
+
+variable			meankinSxx equal c_totalkinSxx/vol
+variable			meankinSyy equal c_totalkinSyy/vol
+variable			meankinSzz equal c_totalkinSzz/vol
+variable			meankinSxy equal c_totalkinSxy/vol
+variable			meankinSxz equal c_totalkinSxz/vol
+variable			meankinSyz equal c_totalkinSyz/vol
+
+# Collisional stresses
+compute				collStress all stress/atom pair #bond
+variable  			collSxx atom c_collStress[1]
+variable  			collSyy atom c_collStress[2]
+variable  			collSzz atom c_collStress[3]
+variable  			collSxy atom c_collStress[4]
+variable  			collSxz atom c_collStress[5]
+variable  			collSyz atom c_collStress[6]
+
+# Mean collisional stresses
+compute  			totalcollSxx all reduce sum v_collSxx
+compute  			totalcollSyy all reduce sum v_collSyy
+compute  			totalcollSzz all reduce sum v_collSzz
+compute  			totalcollSxy all reduce sum v_collSxy
+compute  			totalcollSxz all reduce sum v_collSxz
+compute  			totalcollSyz all reduce sum v_collSyz
+
+variable  			meancollSxx equal c_totalcollSxx/vol
+variable  			meancollSyy equal c_totalcollSyy/vol
+variable  			meancollSzz equal c_totalcollSzz/vol
+variable  			meancollSxy equal c_totalcollSxy/vol
+variable  			meancollSxz equal c_totalcollSxz/vol
+variable  			meancollSyz equal c_totalcollSyz/vol
+
+# Output 
+variable        		timeInstant equal step*dt
+fix 				printContact  all print 1 "${timeInstant} ${stotalcontact}" file ../DEM/nPContact.dat screen no
+fix 				printKinStresses all print 1 "${timeInstant} ${meankinSxx}  ${meankinSyy}   ${meankinSzz}   ${meankinSxy}  ${meankinSxz}  ${meankinSyz}  " file ../DEM/particleKinStresses.dat screen no 
+fix 				printConStresses all print 1 "${timeInstant} ${meancollSxx} ${meancollSyy}  ${meancollSzz}  ${meancollSxy} ${meancollSxz} ${meancollSyz} " file ../DEM/particleConStresses.dat screen no 
+	
+#insert the first particles so that dump is not empty
+run				0 #1
+dump				dmp all custom 25000 ../DEM/post/dump*.part id type x y z vx vy vz fx fy fz omegax omegay omegaz radius c_contact
+
+restart 			25000 ../DEM/liggghts.restart #.1 ../DEM/liggghts.restart.2
+run				0 #1
+
+

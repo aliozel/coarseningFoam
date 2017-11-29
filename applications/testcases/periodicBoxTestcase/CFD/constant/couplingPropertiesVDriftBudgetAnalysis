@@ -1,0 +1,91 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  1.4                                   |
+|   \\  /    A nd           | Web:      http://www.openfoam.org               |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+
+
+FoamFile
+{
+    version         2.0;
+    format          ascii;
+
+    root            "";
+    case            "";
+    instance        "";
+    local           "";
+
+    class           dictionary;
+    object          couplingProperties;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+//===========================================================================//
+
+postProcessingProps
+{
+    DEMts 1.e-06;
+    relativePath "../DEM/post";
+    couplingFilename "dump%d.part";
+    treeSearch true;
+    turbulenceModelType turbulenceModel;
+    
+    outputRelativePath "vDriftVelocityAnalyses";
+
+    //filteringWithoutGradPg;
+    
+    weighthing on;
+    weighthingProps
+    {
+	IDWeighthing off;
+	GaussWeighthing on;
+    }
+    usingLocalEul; // Instead of mapping Lagrangian force
+    
+    //filterSize 3;
+    //testFilterSize 5;
+    
+    fluidCoarsening
+    {
+        //filterWidth (  3 ); 
+        filterWidth ( 1 3 );
+        //filterWidth ( 3 );
+        //filterWidth ( 5 );
+        //filterWidth ( 7 );
+        //filterWidth ( 9 ); 
+        //filterWidth ( 11 );
+        //filterWidth ( 13 );
+        //filterWidth ( 3 5 7 9 11 13 ); 
+       //readFilteredVars;
+    }
+
+ 
+
+    dragModel WenYuDragPost;
+    WenYuDragPostProps
+    {
+       rhoParticle 1500;
+       densityFieldName "rho";
+       //interpolation;
+       maxCellPerPart 30;
+       verbose;
+       //taupFuncPhi;
+       //taupConst;
+    }
+    
+    locateModelPost enginePost;
+    enginePostProps
+    {
+       treeSearch true;
+    }
+	    
+    //verbose;
+    //exList (0);
+ 
+       
+}
+
+// ************************************************************************* //

@@ -1,0 +1,3 @@
+calcCoordinationNumber.C
+
+EXE = $(CFDEM_APP_DIR)/calcCoordinationNumber

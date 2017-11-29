@@ -1,0 +1,5 @@
+constructFilter/constructFilter.C
+boxFilter/boxFilter.C
+GaussianFilter/GaussianFilter.C 
+
+LIB = $(FOAM_USER_LIBBIN)/libfilterObjects

@@ -1,0 +1,7 @@
+wclean libso ./constructFilter/boxFilter
+wclean libso ./convolution
+wclean libso ./statisticalAnalysis
+wclean libso ./parcelCloud
+wclean libso ./agglomerateCloud
+wclean libso ./subModelsPost
+ 

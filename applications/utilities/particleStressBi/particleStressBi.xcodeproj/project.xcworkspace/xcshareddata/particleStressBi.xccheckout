@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
+	<false/>
+	<key>IDESourceControlProjectIdentifier</key>
+	<string>2956355C-D1AE-4461-9BAF-017DAB7F06F5</string>
+	<key>IDESourceControlProjectName</key>
+	<string>particleStressBi</string>
+	<key>IDESourceControlProjectOriginsDictionary</key>
+	<dict>
+		<key>B936EBEB33E2FDC87EB1130ED45C9D4673E5F8D8</key>
+		<string>git://github.com/CFDEMproject/CFDEMcoupling-PUBLIC.git</string>
+		<key>C71F66191BD35043596D6DB1B3AC65D21797F83C</key>
+		<string>https://github.com/aliozel/particleStressBi.git</string>
+	</dict>
+	<key>IDESourceControlProjectPath</key>
+	<string>particleStressBi/particleStressBi.xcodeproj</string>
+	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
+	<dict>
+		<key>B936EBEB33E2FDC87EB1130ED45C9D4673E5F8D8</key>
+		<string>../../../..</string>
+		<key>C71F66191BD35043596D6DB1B3AC65D21797F83C</key>
+		<string>../../..</string>
+	</dict>
+	<key>IDESourceControlProjectURL</key>
+	<string>https://github.com/aliozel/particleStressBi.git</string>
+	<key>IDESourceControlProjectVersion</key>
+	<integer>111</integer>
+	<key>IDESourceControlProjectWCCIdentifier</key>
+	<string>C71F66191BD35043596D6DB1B3AC65D21797F83C</string>
+	<key>IDESourceControlProjectWCConfigurations</key>
+	<array>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.git</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>B936EBEB33E2FDC87EB1130ED45C9D4673E5F8D8</string>
+			<key>IDESourceControlWCCName</key>
+			<string></string>
+		</dict>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.git</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>C71F66191BD35043596D6DB1B3AC65D21797F83C</string>
+			<key>IDESourceControlWCCName</key>
+			<string>particleStressBi</string>
+		</dict>
+	</array>
+</dict>
+</plist>

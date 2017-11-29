@@ -1,0 +1,5 @@
+correlationCoeff/correlationCoeff.C
+conditionalAve/conditionalAve.C
+multipleVarsConditionalAve/multipleVarsConditionalAve.C
+threeVarsConditionalAve/threeVarsConditionalAve.C
+LIB = $(FOAM_USER_LIBBIN)/libstatisticalAnalysis

@@ -1,0 +1,168 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  1.4                                   |
+|   \\  /    A nd           | Web:      http://www.openfoam.org               |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+
+
+FoamFile
+{
+    version         2.0;
+    format          ascii;
+
+    root            "";
+    case            "";
+    instance        "";
+    local           "";
+
+    class           dictionary;
+    object          couplingProperties;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+//===========================================================================//
+
+modelType A; // A or B
+
+couplingInterval 10;
+
+voidFractionModel divided;//centre;//bigParticle;//
+
+locateModel engine;//standard;
+
+meshMotionModel noMeshMotion;
+
+regionModel allRegion;
+
+IOModel basicIO; //trackIO; // 
+
+dataExchangeModel twoWayMPI;//twoWayFiles;//oneWayVTK;//
+//dataExchangeModel oneWayVTK;
+
+averagingModel dense;//dilute;//
+
+clockModel standardClock;//off; //
+
+probeModel off;
+
+smoothingModel off;
+
+forceModels
+(
+      //off
+      WenYuDrag
+      gradPForce
+      periodicPressure
+      averageSlipVel
+);
+
+momCoupleModels
+(
+    //	off	
+    implicitCouple
+    explicitCoupleSource
+);
+
+turbulenceModelType RASProperties;//LESProperties;//
+
+//===========================================================================//
+// sub-model properties
+
+implicitCoupleProps
+{
+    velFieldName "U";
+    granVelFieldName "Us";
+    voidfractionFieldName "voidfraction";
+}
+WenYuDragProps
+{
+    velFieldName "U";
+    granVelFieldName "Us";
+    densityFieldName "rho";
+    voidfractionFieldName "voidfraction";
+    interpolation;
+    verbose;
+}
+
+gradPForceProps
+{
+    pFieldName "p";
+    velocityFieldName "U";
+    densityFieldName "rho";
+    verbose;
+    interpolation;
+}
+
+periodicPressureProps
+{
+    voidfractionFieldName "voidfraction";    
+    velocityFieldName "U";
+    densityFieldName "rho";
+    gravityFieldName "g";
+    rhoParticle 1500;
+    verbose;
+}
+
+averageSlipVelProps
+{
+    rhoParticle             1500;
+    outputDirName           "averageProps";
+    fluidVelFieldName       "U";
+    particleVelFieldName    "Us";
+    voidfractionFieldName   "voidfraction";
+    rhoFluidName "rho";
+}
+
+twoWayMPIProps
+{
+    liggghtsPath "../DEM/in.liggghts_init";
+}
+
+dividedProps
+{
+    alphaMin 0.3;
+    scaleUpVol 1.0;
+}
+
+engineProps
+{
+        treeSearch true;
+}
+
+explicitCoupleProps
+{
+    
+}
+
+oneWayVTKProps
+{
+    DEMts 1.e-06;
+    relativePath "../DEM/post";
+    couplingFilename "part%d.vtk";
+    maxNumberOfParticles 337944;
+}
+
+PostProcessingFilteredDrag
+{
+    rhopart 1500;
+    minFilterWidth 3;
+    maxFilterWidth 9;
+    FilterIncrement 2;
+    nBin 64;
+    Min_alpp 0;
+    Max_alpp 0.64;
+    Min_VelSlip -0.2;
+    Max_VelSlip  0.2;
+    Min_TaupVelSlip 0;
+    Max_TaupVelSlip 0.05;
+    stencilsOutputRelativePath "./FilterStencils";
+    outputRelativePath "./PostProcessingFilteredDrag";
+    EulerianVslipBin;
+    EulerEulerFiltering;
+}
+
+
+// ************************************************************************* //

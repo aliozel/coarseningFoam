@@ -1,0 +1,7 @@
+wmake libso ./subModelsPost
+wmake libso ./parcelCloud
+wmake libso ./agglomerateCloud
+wmake libso ./constructFilter/boxFilter
+wmake libso ./convolution
+wmake libso ./statisticalAnalysis
+ 

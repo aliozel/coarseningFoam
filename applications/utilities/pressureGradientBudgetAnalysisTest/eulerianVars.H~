@@ -1,0 +1,191 @@
+// Test
+
+volScalarField barAlpf=convKernel.coarseningSca("barAlpf",filterWidth[fWidth],mappedVoidfraction);
+volVectorField barGradSigma=convKernel.coarseningVec("barGradSigma",filterWidth[fWidth],gradPg);
+volScalarField alpfPrime = mappedVoidfraction-barAlpf;
+volVectorField GradSigmaPrime = gradPg-barGradSigma;
+volVectorField barAlpfPrime=convKernel.coarseningSca("barAlpfPrime",filterWidth[fWidth],alpfPrime);
+volVectorField barGradSigmaPrime=convKernel.coarseningVec("barGradSigmaPrime",filterWidth[fWidth],GradSigmaPrime);
+volVectorField gradBarAlpf = fvc::grad(barAlpf);
+volTensorField gradBarGradSigma = fvc::grad(barGradSigma);
+volScalarField laplacianBarAlpf = fvc::laplacian(barAlpf);
+volVectorField laplacianBarGradSigma = fvc::laplacian(barGradSigma);
+
+volVectorField barAlpfGradSigma=convKernel.coarseningVec("barAlpfGradSigma",filterWidth[fWidth],mappedVoidfraction*gradPg);
+volVectorField barAlpfGradSigmaBarPrime = convKernel.coarseningVec("barAlpfGradSigmaBarPrime",filterWidth[fWidth],(barAlpf+alpfPrime)*(barGradSigma+GradSigmaPrime));
+
+volVectorField barAlpfBarGradSigma = barAlpf*barGradSigma;
+volVectorField barBarAlpfBarGradSigma = convKernel.coarseningVec("barBarAlpfBarGradSigma",filterWidth[fWidth],barAlpfBarGradSigma);
+volVectorField barBarAlpfGradSigmaPrime = convKernel.coarseningVec("barBarAlpfGradSigmaPrime",filterWidth[fWidth],barAlpf*GradSigmaPrime);
+volVectorField BarAlpfPrimeBarGradSigma = convKernel.coarseningVec("barAlpfPrimeBarGradSigma",filterWidth[fWidth],alpfPrime*barGradSigma);
+volVectorField barAlpfPrimeGradSigmaPrime = convKernel.coarseningVec("barAlpfPrimeGradSigmaPrime",filterWidth[fWidth],alpfPrime*GradSigmaPrime);
+
+volVectorField B2 = convKernel.coarseningVec("B2",1,gradBarGradSigma&gradBarAlpf);
+
+volVectorField barAlpfBarGradSigmaPrime = barAlpf*barGradSigmaPrime;
+volVectorField barAlpfLaplacianBarGradSigma = barAlpf*laplacianBarGradSigma;
+volVectorField barAlpfPrimeBarGradSigma = barAlpfPrime*barGradSigma;
+volVectorField LaplacianBarAlpfBarGradSigma = laplacianBarAlpf*barGradSigma;
+
+//Assign letters for convenience
+
+volVectorField A
+(
+    IOobject
+    (
+        "A"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    barAlpfGradSigma
+);
+A.write();
+
+volVectorField B
+(
+    IOobject
+    (
+        "B"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    barBarAlpfBarGradSigma
+);
+B.write();
+
+volVectorField C
+(
+    IOobject
+    (
+        "C"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    barBarAlpfGradSigmaPrime
+);
+C.write();
+
+volVectorField D
+(
+    IOobject
+    (
+        "D"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    BarAlpfPrimeBarGradSigma
+);
+D.write();
+
+volVectorField E
+(
+    IOobject
+    (
+        "E"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    barAlpfPrimeGradSigmaPrime
+);
+E.write();
+
+
+volVectorField B1
+(
+    IOobject
+    (
+        "B1"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    barAlpfBarGradSigma
+);
+B1.write();
+
+
+volVectorField C1
+(
+    IOobject
+    (
+        "C1"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    barAlpfBarGradSigmaPrime
+);
+C1.write();
+
+
+volVectorField C2
+(
+    IOobject
+    (
+        "C2"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    barAlpfLaplacianBarGradSigma
+);
+C2.write();
+
+
+volVectorField D1
+(
+    IOobject
+    (
+        "D1"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    barAlpfPrimeBarGradSigma
+);
+D1.write();
+
+
+volVectorField D2
+(
+    IOobject
+    (
+        "D2"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    LaplacianBarAlpfBarGradSigma
+);
+D2.write();
+
+
+volVectorField F
+(
+    IOobject
+    (
+        "F"+filterWidthName,
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    barAlpfGradSigmaBarPrime
+);
+F.write();
+

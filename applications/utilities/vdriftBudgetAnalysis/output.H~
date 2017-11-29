@@ -1,0 +1,45 @@
+//- Filter sizes	  
+if(fluidCoarsening) 
+{
+ //- Fluid Coarsening
+ forAll(filterWidth,fWidth)
+ {
+   //- Create name for filter width			  
+   char charName[100];
+   sprintf(charName, "%dX%dX%d",filterWidth[fWidth],filterWidth[fWidth],filterWidth[fWidth]);
+   word filterWidthName(charName);	
+
+   // Create header for output files
+   OFstream* outputFile;
+   fileName outpuFilename(mesh.time().path()/outputRelativePath/"vdriftBudgetAnalysisZ"+filterWidthName+".dat");
+   outputFile =  new OFstream(outpuFilename);
+   *outputFile  << "#Time " << "DivAsgs "  << tab << "Bresolved" << tab << "Bsgs"      << tab << "Cresolved" << tab << "Csgs" << tab 
+		     	    << "Dresolved" << tab << "Dsgs"      << tab << "Eresolved" << tab << "Esgs"      << tab << "Fresolved" << tab 
+		            << "Fsgs"      << tab << "Grav" 	  << tab << "Gresolved" << tab << "Gsgs"      << tab << "Hresolved" << tab 
+			    << "Hsgs" << tab
+			    << endl;  
+   //-Time loop  
+   forAll(timeDirs, timeI)
+   {
+	// Write results into a file
+	*outputFile	<< timeDirs[timeI] 							<< tab 
+			<< domainAveVars[timeI][fWidth][0] 					<< tab  
+                	<< domainAveVars[timeI][fWidth][1]                 			<< tab
+                	<< domainAveVars[timeI][fWidth][2]                 			<< tab
+                	<< domainAveVars[timeI][fWidth][3]                		 	<< tab                
+			<< domainAveVars[timeI][fWidth][4]                 			<< tab
+                	<< domainAveVars[timeI][fWidth][5]                 			<< tab
+                	<< domainAveVars[timeI][fWidth][6]                 			<< tab
+                	<< domainAveVars[timeI][fWidth][7]                 			<< tab
+                	<< domainAveVars[timeI][fWidth][8]                 			<< tab
+			<< domainAveVars[timeI][fWidth][9]					<< tab
+                	<< domainAveVars[timeI][fWidth][10]					<< tab
+                	<< domainAveVars[timeI][fWidth][11]					<< tab
+                	<< domainAveVars[timeI][fWidth][12]					<< tab
+                	<< domainAveVars[timeI][fWidth][13]					<< tab
+                	<< domainAveVars[timeI][fWidth][14]					<< tab
+                	<< domainAveVars[timeI][fWidth][15]					<< tab
+	<< endl;
+   }
+  }
+ }   

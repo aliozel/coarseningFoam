@@ -1,0 +1,263 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  1.4                                   |
+|   \\  /    A nd           | Web:      http://www.openfoam.org               |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+
+
+FoamFile
+{
+    version         2.0;
+    format          ascii;
+
+    root            "";
+    case            "";
+    instance        "";
+    local           "";
+
+    class           dictionary;
+    object          couplingProperties;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+//===========================================================================//
+
+postProcessingProps
+{
+    DEMts 1.e-06;
+    relativePath "../DEM/post";
+    couplingFilename "dump%d.part";
+    treeSearch true;
+    turbulenceModelType turbulenceModel;
+
+    //filteringWithoutGradPg;
+    //notWeighthing;
+    usingLocalEul;
+
+    dynamicAdjustment;
+    dynamicAdjustmentProps
+    {
+       proposedFunction (basicForm);
+       resolvedFunction (resolvedBasicForm);
+       basicForm
+       {
+               fieldName basicForm;
+               expression "1.-barAlpf/0.587";
+               autowrite true;
+       }
+       resolvedBasicForm
+       {
+               fieldName resolvedBasicForm;
+               expression "1.-barAlpf/0.587";
+               autowrite true;
+       }
+    }
+
+    fluidCoarsening
+    {
+        //filterWidth ( 1 );
+        filterWidth ( 3 );
+        //filterWidth ( 5 );
+        //filterWidth ( 7 );
+        //filterWidth ( 9 ); 
+        //filterWidth ( 11 );
+        //filterWidth ( 13 );
+        //filterWidth ( 3 5 7 9 11 13 ); 
+        //readFilteredVars;
+    }
+ 
+    particleCoarsening{};
+    parcelCoarsening
+    {
+        treeSearch true;
+        turbulenceModelType turbulenceModel; 
+        numberOfParticlesInParcel ( 8 ); 
+        //numberOfParticlesInParcel ( 8 27 );
+        //numberOfParticlesInParcel ( 8 27 125 );
+        //numberOfParticlesInParcel ( 125 );
+        //numberOfParticlesInParcel ( 8 27 125 343 );   
+        //numberOfParticlesInParcel ( 8 27 125 343 729 );
+        //numberOfParticlesInParcel ( 8 27 125 343 729 1331 );  
+        //numberOfParticlesInParcel ( 8 27 125 343 729 1331 2197 );
+        //numberOfParticlesInParcel ( 343 ); 
+        //readParcels;
+        useAllParticles; 
+    }
+
+    dragModel WenYuDragPost;
+    WenYuDragPostProps
+    {
+       rhoParticle 1500;
+       densityFieldName "rho";
+       //interpolation;
+       maxCellPerPart 30;
+       verbose;
+       //taupFuncPhi;
+       //taupConst;
+    }
+    
+    locateModelPost enginePost;
+    enginePostProps
+    {
+       treeSearch true;
+    }
+	    
+    verbose;
+    exList (0);
+    
+         
+    conditionalAve
+    {
+    	outputRelativePath "./filteredDrag";
+	//variableList ( BBmicroLag uSlipLag gijLag alppVdiLag BBmicroEul uSlipEul gijEul alppVdiEul);
+    	variableList ( BBmicroLag BBmicroEul BBmicroLagNum BBmicroLagDom BBmicroEulNum BBmicroEulDom );
+        //variableList ( BBmicroLag );
+	averagingVariableList ( baralpp );
+	//averagingVariableList ( gradAlpp );
+	//averagingVariableList ( baralpp baralppalpp );	
+	//averagingVariableList ( baralpp driftModel ); 
+    	//averagingVariableList ( driftModel ); 
+	BBmicro
+    	{
+    		fieldName BBmicro;
+		autowrite true;
+    	} 
+    	uSlipLag
+    	{
+    		fieldName uSlipLag;
+		autowrite true;
+    	} 
+        gij
+        {
+                fieldName gij;
+                autowrite true;
+        }
+        BBmicroPos
+        {
+                fieldName BBmicroPos;
+                autowrite true;
+        }
+        BBmicroNeg
+        {
+                fieldName BBmicroNeg;
+                autowrite true;
+        }
+    	baralpp
+    	{
+    		fieldName baralpp;
+		expression "1-barAlpf";
+		autowrite true;
+		nBin 100;
+		min 0;
+		max 0.64;
+		//nBin 1;
+                //min 0.19;
+                //max 0.21;   
+	}	 
+        baralppalpp
+        {
+                fieldName baralppalpp;
+                expression "barAlppAlpp-(1-barAlpf)*(1-barAlpf)";
+                autowrite true;
+                nBin 16;
+                min 0;
+                max 0.01;
+        }
+    	driftModel
+    	{
+    		fieldName driftModel;
+		expression "pow(vol(),2./3.)*(grad(1-barAlpf).x+grad(1-barAlpf).y+grad(1-barAlpf).z)*(grad(tildeUf.z).x+grad(tildeUf.z).y+grad(tildeUf.z).z)";
+		//expression "(grad(1-barAlpf).x+grad(1-barAlpf).y+grad(1-barAlpf).z)*(grad(1-barAlpf).x+grad(1-barAlpf).y+grad(1-barAlpf).z)";
+		autowrite true;
+		nBin 100;
+		min -1.e-06;
+		max  1.e-06; //0.005;   
+	}	
+
+    	gradAlpp
+    	{
+    		fieldName gradAlpp;
+		expression "sqrt(grad(1-barAlpf.x*grad(1-barAlpf).x + grad(1-barAlpf).y*grad(1-barAlpf).y + grad(1-barAlpf).z*grad(1-barAlpf).z )";
+		autowrite true;
+		nBin 100;
+		min 0;
+		max  1.e-06; //0.005;   
+	}
+    }
+    
+    /* 
+    multiVarsConditionalAve
+    {
+	outputRelativePath "./filteredDrag";
+	variableList ( BBmicroLag BBmicroEul BBmicroLagNum BBmicroLagDom BBmicroEulNum BBmicroEulDom );
+	averagingVariableList ( alpp Uslip );
+	alpp
+	{
+        	fieldName alpp;
+        	expression "1-voidfraction";
+        	autowrite true;
+        	nBin 100;
+        	min 0;
+        	max 0.64;
+	}
+	Uslip
+	{
+        	fieldName Uslip;
+        	expression "U.z-mappedUs.z";
+		autowrite true;
+        	nBin 1;
+        	min 0.225;
+        	max 0.275;
+	}
+
+    }    
+    */   
+}
+
+
+
+EulerianMappingProps
+{
+    DEMts 1.e-06;
+    relativePath "../DEM/post";
+    couplingFilename "dump%d.part";
+    treeSearch true;
+    turbulenceModelType turbulenceModel;
+
+    dragModel WenYuDragPost;
+    WenYuDragPostProps
+    {
+        rhoParticle 1500;
+        densityFieldName "rho";
+        //interpolation;
+        maxCellPerPart 30;
+        verbose;
+    }
+
+    verbose;
+    exList ( 0 );
+
+    conditionalAve
+    {
+        outputRelativePath "./ratioEulerianDragForces";
+        variableList ( ratioDragForce ratioDragForceNum ratioDragForceDom );
+        averagingVariableList ( alpp );
+
+        alpp
+        {
+                fieldName alpp;
+                expression "1-voidfraction";
+                autowrite true;
+                nBin 128;
+                min 0;
+                max 0.64;
+        }
+    }
+
+}
+
+
+// ************************************************************************* //

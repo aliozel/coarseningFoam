@@ -1,0 +1,3 @@
+particleGranularTemperature.C
+
+EXE = $(CFDEM_APP_DIR)/particleGranularTemperature

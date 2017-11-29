@@ -1,0 +1,3 @@
+eulerianFoamToDat.C
+
+EXE = $(CFDEM_APP_DIR)/eulerianFoamToDat

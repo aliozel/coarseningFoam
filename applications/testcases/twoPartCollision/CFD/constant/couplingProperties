@@ -1,0 +1,161 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  1.4                                   |
+|   \\  /    A nd           | Web:      http://www.openfoam.org               |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+
+
+FoamFile
+{
+    version         2.0;
+    format          ascii;
+
+    root            "";
+    case            "";
+    instance        "";
+    local           "";
+
+    class           dictionary;
+    object          couplingProperties;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+//===========================================================================//
+
+modelType A; // A or B
+
+couplingInterval 1;
+
+voidFractionModel divided;//centre;//bigParticle;//
+
+locateModel engine;//standard;
+
+meshMotionModel noMeshMotion;
+
+regionModel allRegion;
+
+IOModel basicIO; //trackIO; // 
+
+dataExchangeModel twoWayMPIpu;//twoWayFiles;//oneWayVTK;//
+//dataExchangeModel oneWayVTK;
+
+averagingModel dense;//dilute;//
+
+clockModel standardClock;//off; //
+
+probeModel off;
+
+smoothingModel off;
+
+forceModels
+(
+      off
+      //WenYuDrag
+      //gradPForce
+      //periodicPressure
+      //averageSlipVel
+);
+
+momCoupleModels
+(
+    //	off	
+    implicitCouple
+    explicitCoupleSource
+);
+
+turbulenceModelType RASProperties;//LESProperties;//
+
+//===========================================================================//
+// sub-model properties
+
+implicitCoupleProps
+{
+    velFieldName "U";
+    granVelFieldName "Us";
+    voidfractionFieldName "voidfraction";
+}
+WenYuDragProps
+{
+    velFieldName "U";
+    granVelFieldName "Us";
+    densityFieldName "rho";
+    voidfractionFieldName "voidfraction";
+    interpolation;
+    verbose;
+}
+
+gradPForceProps
+{
+    pFieldName "p";
+    velocityFieldName "U";
+    densityFieldName "rho";
+    verbose;
+    interpolation;
+}
+
+periodicPressureProps
+{
+    voidfractionFieldName "voidfraction";    
+    velocityFieldName "U";
+    densityFieldName "rho";
+    gravityFieldName "g";
+    rhoParticle 1500;
+    verbose;
+}
+
+averageSlipVelProps
+{
+    rhoParticle             1500;
+    outputDirName           "averageProps";
+    fluidVelFieldName       "U";
+    particleVelFieldName    "Us";
+    voidfractionFieldName   "voidfraction";
+    rhoFluidName "rho";
+}
+
+twoWayMPIProps
+{
+    liggghtsPath "../DEM/in.liggghts_init";
+//    liggghtsPath "../DEM/in.liggghts_resume";
+}
+
+twoWayMPIpuProps
+{
+    liggghtsPath "../DEM/in.liggghts_init";
+//    liggghtsPath "../DEM/in.liggghts_resume";
+}
+
+
+dividedProps
+{
+    alphaMin 0.3;
+    scaleUpVol 1.0;
+}
+
+centreProps
+{
+    alphaMin 0.3;
+    scaleUpVol 1.0;
+}
+
+GaussProps
+{
+    alphaMin 0.3;
+    scaleUpVol 1.0;
+}
+
+engineProps
+{
+        treeSearch true;
+}
+
+explicitCoupleProps
+{
+    
+}
+
+
+// ************************************************************************* //
